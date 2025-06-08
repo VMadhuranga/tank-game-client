@@ -1,0 +1,16 @@
+{
+  "name": "space-shooting-game",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "dev-template-script",
+    "build": "build-template-script"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2",
+    "vite": "^6.3.1"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0",
+    "terser": "^5.39.0"
+  }
+}
