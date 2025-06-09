@@ -1,9 +1,9 @@
 {
-  "name": "space-shooting-game",
+  "name": "tank-game",
   "version": "1.0.0",
   "scripts": {
-    "dev": "dev-template-script",
-    "build": "build-template-script"
+    "dev": "vite --config vite/config.dev.mjs",
+    "build": "vite build --config vite/config.prod.mjs"
   },
   "devDependencies": {
     "typescript": "~5.7.2",
