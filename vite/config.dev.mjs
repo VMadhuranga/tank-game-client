@@ -12,6 +12,12 @@ export default defineConfig({
     },
   },
   server: {
-    port: 8080,
+    proxy: {
+      "/ws": {
+        target: "ws://localhost:8080",
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
 });
