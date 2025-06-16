@@ -5,16 +5,24 @@ type Event = {
   payload: any;
 };
 
+const EventNewPlayer = "new_player";
+const EventAllPlayers = "all_players";
+const EventRemovePlayer = "remove_player";
+const EventMovePlayer = "move_player";
+
 type Player = {
   id: string;
   pX: number;
   pY: number;
+  angle: number;
 };
 
 export class MainGame extends Scene {
-  playerTank: Types.Physics.Arcade.SpriteWithDynamicBody;
   players: Map<string, Types.Physics.Arcade.SpriteWithDynamicBody>;
-  lastFired: number = 0;
+  playerTank: Types.Physics.Arcade.SpriteWithDynamicBody;
+  playerID: string;
+  lastFired = 0;
+  tankSpeed = 3;
   socket;
 
   constructor() {
@@ -24,12 +32,33 @@ export class MainGame extends Scene {
 
   requestNewPlayer() {
     this.socket.send(
-      JSON.stringify({ type: "new_player", payload: null } as Event)
+      JSON.stringify({ type: EventNewPlayer, payload: null } as Event)
     );
   }
 
+  requestMovePlayer(p: Player) {
+    this.socket.send(
+      JSON.stringify({
+        type: EventMovePlayer,
+        payload: p,
+      } as Event)
+    );
+  }
+
+  setPlayerTank() {
+    this.playerTank = this.players.get(
+      this.playerID
+    ) as Types.Physics.Arcade.SpriteWithDynamicBody;
+  }
+
   addToPlayers(p: Player) {
-    this.players.set(p.id, this.physics.add.sprite(p.pX, p.pY, "playerTank"));
+    this.players.set(
+      p.id,
+      this.physics.add
+        .sprite(p.pX, p.pY, "playerTank")
+        .setAngle(p.angle)
+        .setCollideWorldBounds(true)
+    );
   }
 
   removeFromPlayers(p: Player) {
@@ -37,23 +66,37 @@ export class MainGame extends Scene {
     this.players.delete(p.id);
   }
 
+  movePlayer(p: Player) {
+    this.players.get(p.id)?.setPosition(p.pX, p.pY).setAngle(p.angle);
+  }
+
   handleEvents(ev: Event) {
     switch (ev.type) {
-      case "new_player": {
+      case EventNewPlayer: {
         const player: Player = ev.payload;
         this.addToPlayers(player);
+
+        if (!this.playerID) {
+          this.playerID = player.id;
+          this.setPlayerTank();
+        }
         break;
       }
-      case "all_players": {
+      case EventAllPlayers: {
         const players: Player[] = ev.payload;
         for (const player of players) {
           this.addToPlayers(player);
         }
         break;
       }
-      case "remove_player": {
+      case EventRemovePlayer: {
         const player: Player = ev.payload;
         this.removeFromPlayers(player);
+        break;
+      }
+      case EventMovePlayer: {
+        const player: Player = ev.payload;
+        this.movePlayer(player);
         break;
       }
       default:
@@ -70,9 +113,6 @@ export class MainGame extends Scene {
 
   create() {
     this.players = new Map();
-    // this.playerTank = this.physics.add.sprite(300, 300, "playerTank");
-    // this.playerTank.setCollideWorldBounds(true);
-    // this.players.set("1", this.physics.add.sprite(300, 300, "playerTank"));
 
     this.requestNewPlayer();
     this.socket.addEventListener("message", (ev) => {
@@ -81,69 +121,88 @@ export class MainGame extends Scene {
     });
   }
 
-  // update(time: number): void {
-  //   let cursors = this.input.keyboard?.createCursorKeys();
+  update(time: number, delta: number): void {
+    let cursors = this.input.keyboard?.createCursorKeys();
+    if (cursors?.up.isDown) {
+      this.playerTank
+        .setPosition(this.playerTank.x, this.playerTank.y - this.tankSpeed)
+        .setAngle(-180);
+    } else if (cursors?.down.isDown) {
+      this.playerTank
+        .setPosition(this.playerTank.x, this.playerTank.y + this.tankSpeed)
+        .setAngle(0);
+    } else if (cursors?.right.isDown) {
+      this.playerTank
+        .setPosition(this.playerTank.x + this.tankSpeed, this.playerTank.y)
+        .setAngle(-90);
+    } else if (cursors?.left.isDown) {
+      this.playerTank
+        .setPosition(this.playerTank.x - this.tankSpeed, this.playerTank.y)
+        .setAngle(90);
+    } else {
+      this.playerTank
+        .setPosition(this.playerTank.x, this.playerTank.y)
+        .setAngle(this.playerTank.angle);
+    }
 
-  //   if (cursors?.up.isDown) {
-  //     this.playerTank.setAngle(-180);
-  //     this.playerTank.setVelocity(0, -200);
-  //   } else if (cursors?.down.isDown) {
-  //     this.playerTank.setAngle(0);
-  //     this.playerTank.setVelocity(0, 200);
-  //   } else if (cursors?.right.isDown) {
-  //     this.playerTank.setAngle(-90);
-  //     this.playerTank.setVelocity(200, 0);
-  //   } else if (cursors?.left.isDown) {
-  //     this.playerTank.setAngle(90);
-  //     this.playerTank.setVelocity(-200, 0);
-  //   } else {
-  //     this.playerTank.setVelocity(0, 0);
-  //     this.playerTank.setAngle(this.playerTank.angle);
-  //   }
+    if (
+      cursors?.up.isDown ||
+      cursors?.down.isDown ||
+      cursors?.right.isDown ||
+      cursors?.left.isDown
+    ) {
+      this.playerTank.updateDisplayOrigin();
+      this.requestMovePlayer({
+        id: this.playerID,
+        pX: this.playerTank.x,
+        pY: this.playerTank.y,
+        angle: this.playerTank.angle,
+      });
+    }
 
-  //   if (cursors?.space.isDown && time > this.lastFired) {
-  //     const playerTankBulletConfig = {
-  //       pX: this.playerTank.x,
-  //       pY: this.playerTank.y,
-  //       angle: 0,
-  //       vX: 0,
-  //       vY: 0,
-  //     };
+    // if (cursors?.space.isDown && time > this.lastFired) {
+    //   const playerTankBulletConfig = {
+    //     pX: this.playerTank.x,
+    //     pY: this.playerTank.y,
+    //     angle: 0,
+    //     vX: 0,
+    //     vY: 0,
+    //   };
 
-  //     if (this.playerTank.angle === -180) {
-  //       playerTankBulletConfig.pY -= 35;
-  //       playerTankBulletConfig.angle = 0;
-  //       playerTankBulletConfig.vX = 0;
-  //       playerTankBulletConfig.vY = -300;
-  //     } else if (this.playerTank.angle === 0) {
-  //       playerTankBulletConfig.pY += 35;
-  //       playerTankBulletConfig.angle = -180;
-  //       playerTankBulletConfig.vX = 0;
-  //       playerTankBulletConfig.vY = 300;
-  //     } else if (this.playerTank.angle === -90) {
-  //       playerTankBulletConfig.pX += 35;
-  //       playerTankBulletConfig.angle = 90;
-  //       playerTankBulletConfig.vX = 300;
-  //       playerTankBulletConfig.vY = 0;
-  //     } else if (this.playerTank.angle === 90) {
-  //       playerTankBulletConfig.pX -= 35;
-  //       playerTankBulletConfig.angle = -90;
-  //       playerTankBulletConfig.vX = -300;
-  //       playerTankBulletConfig.vY = 0;
-  //     }
+    //   if (this.playerTank.angle === -180) {
+    //     playerTankBulletConfig.pY -= 35;
+    //     playerTankBulletConfig.angle = 0;
+    //     playerTankBulletConfig.vX = 0;
+    //     playerTankBulletConfig.vY = -300;
+    //   } else if (this.playerTank.angle === 0) {
+    //     playerTankBulletConfig.pY += 35;
+    //     playerTankBulletConfig.angle = -180;
+    //     playerTankBulletConfig.vX = 0;
+    //     playerTankBulletConfig.vY = 300;
+    //   } else if (this.playerTank.angle === -90) {
+    //     playerTankBulletConfig.pX += 35;
+    //     playerTankBulletConfig.angle = 90;
+    //     playerTankBulletConfig.vX = 300;
+    //     playerTankBulletConfig.vY = 0;
+    //   } else if (this.playerTank.angle === 90) {
+    //     playerTankBulletConfig.pX -= 35;
+    //     playerTankBulletConfig.angle = -90;
+    //     playerTankBulletConfig.vX = -300;
+    //     playerTankBulletConfig.vY = 0;
+    //   }
 
-  //     const playerTankBullet = this.physics.add.sprite(
-  //       playerTankBulletConfig.pX,
-  //       playerTankBulletConfig.pY,
-  //       "playerTankBullet"
-  //     );
-  //     playerTankBullet.setAngle(playerTankBulletConfig.angle);
-  //     playerTankBullet.setVelocity(
-  //       playerTankBulletConfig.vX,
-  //       playerTankBulletConfig.vY
-  //     );
+    //   const playerTankBullet = this.physics.add.sprite(
+    //     playerTankBulletConfig.pX,
+    //     playerTankBulletConfig.pY,
+    //     "playerTankBullet"
+    //   );
+    //   playerTankBullet.setAngle(playerTankBulletConfig.angle);
+    //   playerTankBullet.setVelocity(
+    //     playerTankBulletConfig.vX,
+    //     playerTankBulletConfig.vY
+    //   );
 
-  //     this.lastFired = time + 300;
-  //   }
-  // }
+    //   this.lastFired = time + 300;
+    // }
+  }
 }
