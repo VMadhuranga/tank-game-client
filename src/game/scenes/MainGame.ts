@@ -46,16 +46,16 @@ export class MainGame extends Scene {
   }
 
   setPlayerTank() {
-    this.playerTank = this.players.get(
-      this.playerID
-    ) as Types.Physics.Arcade.SpriteWithDynamicBody;
+    this.playerTank = this.players
+      .get(this.playerID)
+      ?.setTexture("playerTank") as Types.Physics.Arcade.SpriteWithDynamicBody;
   }
 
   addToPlayers(p: Player) {
     this.players.set(
       p.id,
       this.physics.add
-        .sprite(p.pX, p.pY, "playerTank")
+        .sprite(p.pX, p.pY, "enemyTank")
         .setAngle(p.angle)
         .setCollideWorldBounds(true)
     );
@@ -80,6 +80,7 @@ export class MainGame extends Scene {
           this.playerID = player.id;
           this.setPlayerTank();
         }
+
         break;
       }
       case EventAllPlayers: {
@@ -121,27 +122,27 @@ export class MainGame extends Scene {
     });
   }
 
-  update(time: number, delta: number): void {
+  update(time: number): void {
     let cursors = this.input.keyboard?.createCursorKeys();
     if (cursors?.up.isDown) {
       this.playerTank
-        .setPosition(this.playerTank.x, this.playerTank.y - this.tankSpeed)
+        ?.setPosition(this.playerTank.x, this.playerTank.y - this.tankSpeed)
         .setAngle(-180);
     } else if (cursors?.down.isDown) {
       this.playerTank
-        .setPosition(this.playerTank.x, this.playerTank.y + this.tankSpeed)
+        ?.setPosition(this.playerTank.x, this.playerTank.y + this.tankSpeed)
         .setAngle(0);
     } else if (cursors?.right.isDown) {
       this.playerTank
-        .setPosition(this.playerTank.x + this.tankSpeed, this.playerTank.y)
+        ?.setPosition(this.playerTank.x + this.tankSpeed, this.playerTank.y)
         .setAngle(-90);
     } else if (cursors?.left.isDown) {
       this.playerTank
-        .setPosition(this.playerTank.x - this.tankSpeed, this.playerTank.y)
+        ?.setPosition(this.playerTank.x - this.tankSpeed, this.playerTank.y)
         .setAngle(90);
     } else {
       this.playerTank
-        .setPosition(this.playerTank.x, this.playerTank.y)
+        ?.setPosition(this.playerTank.x, this.playerTank.y)
         .setAngle(this.playerTank.angle);
     }
 
@@ -151,7 +152,6 @@ export class MainGame extends Scene {
       cursors?.right.isDown ||
       cursors?.left.isDown
     ) {
-      this.playerTank.updateDisplayOrigin();
       this.requestMovePlayer({
         id: this.playerID,
         pX: this.playerTank.x,
