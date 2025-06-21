@@ -6,7 +6,7 @@ type Event = {
 };
 
 const EventNewPlayer = "new_player";
-const EventAllPlayers = "all_players";
+const EventOtherPlayers = "other_players";
 const EventRemovePlayer = "remove_player";
 const EventMovePlayer = "move_player";
 const EventBulletHit = "bullet_hit";
@@ -45,6 +45,12 @@ export class MainGame extends Scene {
   requestNewPlayer() {
     this.socket.send(
       JSON.stringify({ type: EventNewPlayer, payload: null } as Event)
+    );
+  }
+
+  requestOtherPlayers() {
+    this.socket.send(
+      JSON.stringify({ type: EventOtherPlayers, payload: null } as Event)
     );
   }
 
@@ -110,11 +116,12 @@ export class MainGame extends Scene {
         if (!this.playerID) {
           this.playerID = player.id;
           this.setPlayerTank();
+          this.requestOtherPlayers();
         }
 
         break;
       }
-      case EventAllPlayers: {
+      case EventOtherPlayers: {
         const players: Player[] = ev.payload;
         for (const player of players) {
           this.addToPlayers(player);
