@@ -1,5 +1,9 @@
-import { MainGame } from "./scenes/MainGame";
 import { AUTO, Game, Scale, Types } from "phaser";
+import { MainGame } from "./scenes/MainGame";
+import { MainMenu } from "./scenes/MainMenu";
+import { Instructions } from "./scenes/Instructions";
+import { GameOver } from "./scenes/GameOver";
+import { Boot } from "./scenes/Boot";
 
 const config: Types.Core.GameConfig = {
   type: AUTO,
@@ -11,7 +15,7 @@ const config: Types.Core.GameConfig = {
     mode: Scale.FIT,
     autoCenter: Scale.CENTER_BOTH,
   },
-  scene: [MainGame],
+  scene: [Boot, MainMenu, Instructions, MainGame, GameOver],
   physics: {
     default: "arcade",
   },
