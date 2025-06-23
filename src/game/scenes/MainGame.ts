@@ -162,6 +162,9 @@ export class MainGame extends Scene {
       case EventBulletHit: {
         const player: Player = ev.payload;
         this.removeFromPlayers(player);
+        if (this.playerID === player.id) {
+          this.exitGamePlay("GameOver");
+        }
 
         break;
       }
