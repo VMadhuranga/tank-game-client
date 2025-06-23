@@ -28,6 +28,7 @@ type Bullet = {
 };
 
 export class MainGame extends Scene {
+  socket: WebSocket;
   players: Map<string, Phaser.Physics.Arcade.Sprite>;
   playerTank: Phaser.Physics.Arcade.Sprite;
   playerBullets: Phaser.Physics.Arcade.Group;
@@ -35,11 +36,9 @@ export class MainGame extends Scene {
   playerID: string;
   lastFired = 0;
   tankSpeed = 3;
-  socket;
 
   constructor() {
     super("MainGame");
-    this.socket = new WebSocket(`ws://${document.location.host}/ws`);
   }
 
   requestNewPlayer() {
@@ -99,12 +98,31 @@ export class MainGame extends Scene {
   }
 
   removeFromPlayers(p: Player) {
-    this.players.get(p.id)?.disableBody(true, true);
+    this.players.get(p.id)?.destroy(true);
     this.players.delete(p.id);
   }
 
   movePlayer(p: Player) {
     this.players.get(p.id)?.setPosition(p.pX, p.pY).setAngle(p.angle);
+  }
+
+  exitGamePlay(sceneKey: string) {
+    this.players.clear();
+    this.playerTank.destroy();
+    this.playerBullets.destroy(true);
+    this.enemyBullets.destroy(true);
+    this.playerID = "";
+    this.socket.close();
+    this.scene.start(sceneKey);
+  }
+
+  exitGamePlayOnEscPress() {
+    const escKey = this.input.keyboard?.addKey(
+      Phaser.Input.Keyboard.KeyCodes.ESC
+    );
+    if (escKey?.isDown) {
+      this.exitGamePlay("MainMenu");
+    }
   }
 
   handleEvents(ev: Event) {
@@ -126,21 +144,25 @@ export class MainGame extends Scene {
         for (const player of players) {
           this.addToPlayers(player);
         }
+
         break;
       }
       case EventRemovePlayer: {
         const player: Player = ev.payload;
         this.removeFromPlayers(player);
+
         break;
       }
       case EventMovePlayer: {
         const player: Player = ev.payload;
         this.movePlayer(player);
+
         break;
       }
       case EventBulletHit: {
         const player: Player = ev.payload;
         this.removeFromPlayers(player);
+
         break;
       }
       case EventShoot: {
@@ -156,6 +178,7 @@ export class MainGame extends Scene {
         enemyTankBullet
           .setAngle(bullet.angle)
           .setVelocity(bullet.vX, bullet.vY);
+
         break;
       }
       default:
@@ -176,7 +199,10 @@ export class MainGame extends Scene {
     this.playerBullets = this.physics.add.group();
     this.enemyBullets = this.physics.add.group();
 
-    this.requestNewPlayer();
+    this.socket = new WebSocket(`ws://${document.location.host}/ws`);
+    this.socket.addEventListener("open", () => {
+      this.requestNewPlayer();
+    });
     this.socket.addEventListener("message", (ev) => {
       const eventData: Event = JSON.parse(ev.data);
       this.handleEvents(eventData);
@@ -338,5 +364,7 @@ export class MainGame extends Scene {
       }
       return true;
     }, this);
+
+    this.exitGamePlayOnEscPress();
   }
 }
