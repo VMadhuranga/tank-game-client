@@ -8,20 +8,20 @@ export class MainMenu extends Scene {
   create() {
     this.add.text(10, 10, "Main Menu").setFontSize(50).setPadding(10);
 
-    const startButton = this.add
-      .text(10, 125, "Start")
+    const playButton = this.add
+      .text(10, 125, "Play")
       .setFontSize(40)
       .setBackgroundColor("#2d2d2d")
       .setPadding(10)
       .setInteractive();
 
-    startButton.addListener("pointerover", () => {
-      startButton.setBackgroundColor("#8d8d8d");
+    playButton.addListener("pointerover", () => {
+      playButton.setBackgroundColor("#8d8d8d");
     });
-    startButton.addListener("pointerout", () => {
-      startButton.setBackgroundColor("#2d2d2d");
+    playButton.addListener("pointerout", () => {
+      playButton.setBackgroundColor("#2d2d2d");
     });
-    startButton.addListener("pointerdown", () => {
+    playButton.addListener("pointerdown", () => {
       this.scene.start("MainGame");
     });
 
