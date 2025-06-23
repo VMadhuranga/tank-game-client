@@ -41,19 +41,19 @@ export class MainGame extends Scene {
     super("MainGame");
   }
 
-  requestNewPlayer() {
+  sendNewPlayerEvent() {
     this.socket.send(
       JSON.stringify({ type: EventNewPlayer, payload: null } as Event)
     );
   }
 
-  requestOtherPlayers() {
+  sendOtherPlayersEvent() {
     this.socket.send(
       JSON.stringify({ type: EventOtherPlayers, payload: null } as Event)
     );
   }
 
-  requestMovePlayer(p: Player) {
+  sendMovePlayerEvent(p: Player) {
     this.socket.send(
       JSON.stringify({
         type: EventMovePlayer,
@@ -62,7 +62,7 @@ export class MainGame extends Scene {
     );
   }
 
-  requestBulletHit(p: Player) {
+  sendBulletHitEvent(p: Player) {
     this.socket.send(
       JSON.stringify({
         type: EventBulletHit,
@@ -71,7 +71,7 @@ export class MainGame extends Scene {
     );
   }
 
-  requestShoot(b: Bullet) {
+  sendShootEvent(b: Bullet) {
     this.socket.send(
       JSON.stringify({
         type: EventShoot,
@@ -134,7 +134,7 @@ export class MainGame extends Scene {
         if (!this.playerID) {
           this.playerID = player.id;
           this.setPlayerTank();
-          this.requestOtherPlayers();
+          this.sendOtherPlayersEvent();
         }
 
         break;
@@ -204,7 +204,7 @@ export class MainGame extends Scene {
 
     this.socket = new WebSocket(`ws://${document.location.host}/ws`);
     this.socket.addEventListener("open", () => {
-      this.requestNewPlayer();
+      this.sendNewPlayerEvent();
     });
     this.socket.addEventListener("message", (ev) => {
       const eventData: Event = JSON.parse(ev.data);
@@ -242,7 +242,7 @@ export class MainGame extends Scene {
       cursors?.right.isDown ||
       cursors?.left.isDown
     ) {
-      this.requestMovePlayer({
+      this.sendMovePlayerEvent({
         id: this.playerID,
         pX: this.playerTank.x,
         pY: this.playerTank.y,
@@ -293,7 +293,7 @@ export class MainGame extends Scene {
         .setVelocity(playerTankBulletConfig.vX, playerTankBulletConfig.vY);
 
       this.lastFired = time + 300;
-      this.requestShoot({
+      this.sendShootEvent({
         pX: playerTankBulletConfig.pX,
         pY: playerTankBulletConfig.pY,
         angle: playerTankBulletConfig.angle,
@@ -309,7 +309,7 @@ export class MainGame extends Scene {
         bullet.destroy();
 
         if (player instanceof Phaser.Physics.Arcade.Sprite) {
-          this.requestBulletHit({
+          this.sendBulletHitEvent({
             id: player.name,
             pX: player.x,
             pY: player.y,
@@ -328,7 +328,7 @@ export class MainGame extends Scene {
         bullet.destroy();
 
         if (player instanceof Phaser.Physics.Arcade.Sprite) {
-          this.requestBulletHit({
+          this.sendBulletHitEvent({
             id: player.name,
             pX: player.x,
             pY: player.y,
