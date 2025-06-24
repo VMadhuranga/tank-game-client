@@ -202,7 +202,7 @@ export class MainGame extends Scene {
     this.playerBullets = this.physics.add.group();
     this.enemyBullets = this.physics.add.group();
 
-    this.socket = new WebSocket(`ws://${document.location.host}/ws`);
+    this.socket = new WebSocket(`wss://${document.location.host}/ws`);
     this.socket.addEventListener("open", () => {
       this.sendNewPlayerEvent();
     });
