@@ -302,7 +302,7 @@ export class MainGame extends Scene {
       });
     }
 
-    this.physics.collide(
+    this.physics.overlap(
       this.playerBullets,
       [...this.players.values()],
       (player, bullet) => {
@@ -321,7 +321,7 @@ export class MainGame extends Scene {
       this
     );
 
-    this.physics.collide(
+    this.physics.overlap(
       this.enemyBullets,
       [...this.players.values()],
       (player, bullet) => {
