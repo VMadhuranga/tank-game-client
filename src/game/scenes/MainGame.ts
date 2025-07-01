@@ -9,6 +9,7 @@ const EventNewPlayer = "new_player";
 const EventOtherPlayers = "other_players";
 const EventRemovePlayer = "remove_player";
 const EventMovePlayer = "move_player";
+const EventPlayerHit = "player_hit";
 const EventBulletHit = "bullet_hit";
 const EventShoot = "shoot";
 
@@ -20,6 +21,7 @@ type Player = {
 };
 
 type Bullet = {
+  id: string;
   pX: number;
   pY: number;
   angle: number;
@@ -31,11 +33,10 @@ export class MainGame extends Scene {
   socket: WebSocket;
   players: Map<string, Phaser.Physics.Arcade.Sprite>;
   playerTank: Phaser.Physics.Arcade.Sprite;
-  playerBullets: Phaser.Physics.Arcade.Group;
-  enemyBullets: Phaser.Physics.Arcade.Group;
   playerID: string;
-  lastFired = 0;
   tankSpeed = 3;
+  bullets: Map<string, Phaser.Physics.Arcade.Sprite>;
+  lastFired = 0;
 
   constructor() {
     super("MainGame");
@@ -62,11 +63,20 @@ export class MainGame extends Scene {
     );
   }
 
-  sendBulletHitEvent(p: Player) {
+  sendPlayerHitEvent(p: Player) {
+    this.socket.send(
+      JSON.stringify({
+        type: EventPlayerHit,
+        payload: p,
+      } as Event)
+    );
+  }
+
+  sendBulletHitEvent(b: Bullet) {
     this.socket.send(
       JSON.stringify({
         type: EventBulletHit,
-        payload: p,
+        payload: b,
       } as Event)
     );
   }
@@ -106,12 +116,27 @@ export class MainGame extends Scene {
     this.players.get(p.id)?.setPosition(p.pX, p.pY).setAngle(p.angle);
   }
 
+  addToBullets(b: Bullet, textureKey: string) {
+    this.bullets.set(
+      b.id,
+      this.physics.add
+        .sprite(b.pX, b.pY, textureKey)
+        .setAngle(b.angle)
+        .setVelocity(b.vX, b.vY)
+        .setName(b.id)
+    );
+  }
+
+  removeFromBullets(b: Bullet) {
+    this.bullets.get(b.id)?.destroy(true);
+    this.bullets.delete(b.id);
+  }
+
   exitGamePlay(sceneKey: string) {
-    this.players.clear();
     this.playerTank.destroy();
-    this.playerBullets.destroy(true);
-    this.enemyBullets.destroy(true);
     this.playerID = "";
+    this.players.clear();
+    this.bullets.clear();
     this.socket.close();
     this.scene.start(sceneKey);
   }
@@ -159,28 +184,21 @@ export class MainGame extends Scene {
 
         break;
       }
-      case EventBulletHit: {
+      case EventPlayerHit: {
         const player: Player = ev.payload;
         this.removeFromPlayers(player);
-        if (this.playerID === player.id) {
-          this.exitGamePlay("GameOver");
-        }
+
+        break;
+      }
+      case EventBulletHit: {
+        const bullet: Bullet = ev.payload;
+        this.removeFromBullets(bullet);
 
         break;
       }
       case EventShoot: {
         const bullet: Bullet = ev.payload;
-
-        const enemyTankBullet = this.physics.add.sprite(
-          bullet.pX,
-          bullet.pY,
-          "enemyTankBullet"
-        );
-        this.enemyBullets.add(enemyTankBullet);
-
-        enemyTankBullet
-          .setAngle(bullet.angle)
-          .setVelocity(bullet.vX, bullet.vY);
+        this.addToBullets(bullet, "enemyTankBullet");
 
         break;
       }
@@ -199,8 +217,7 @@ export class MainGame extends Scene {
 
   create() {
     this.players = new Map();
-    this.playerBullets = this.physics.add.group();
-    this.enemyBullets = this.physics.add.group();
+    this.bullets = new Map();
 
     this.socket = new WebSocket(`wss://${document.location.host}/ws`);
     this.socket.addEventListener("open", () => {
@@ -251,7 +268,8 @@ export class MainGame extends Scene {
     }
 
     if (cursors?.space.isDown && time > this.lastFired) {
-      const playerTankBulletConfig = {
+      const bullet: Bullet = {
+        id: crypto.randomUUID(),
         pX: this.playerTank.x,
         pY: this.playerTank.y,
         angle: 0,
@@ -260,87 +278,60 @@ export class MainGame extends Scene {
       };
 
       if (this.playerTank.angle === -180) {
-        playerTankBulletConfig.pY -= 35;
-        playerTankBulletConfig.angle = 0;
-        playerTankBulletConfig.vX = 0;
-        playerTankBulletConfig.vY = -300;
+        bullet.pY -= 35;
+        bullet.angle = 0;
+        bullet.vX = 0;
+        bullet.vY = -300;
       } else if (this.playerTank.angle === 0) {
-        playerTankBulletConfig.pY += 35;
-        playerTankBulletConfig.angle = -180;
-        playerTankBulletConfig.vX = 0;
-        playerTankBulletConfig.vY = 300;
+        bullet.pY += 35;
+        bullet.angle = -180;
+        bullet.vX = 0;
+        bullet.vY = 300;
       } else if (this.playerTank.angle === -90) {
-        playerTankBulletConfig.pX += 35;
-        playerTankBulletConfig.angle = 90;
-        playerTankBulletConfig.vX = 300;
-        playerTankBulletConfig.vY = 0;
+        bullet.pX += 35;
+        bullet.angle = 90;
+        bullet.vX = 300;
+        bullet.vY = 0;
       } else if (this.playerTank.angle === 90) {
-        playerTankBulletConfig.pX -= 35;
-        playerTankBulletConfig.angle = -90;
-        playerTankBulletConfig.vX = -300;
-        playerTankBulletConfig.vY = 0;
+        bullet.pX -= 35;
+        bullet.angle = -90;
+        bullet.vX = -300;
+        bullet.vY = 0;
       }
 
-      const playerTankBullet = this.physics.add.sprite(
-        playerTankBulletConfig.pX,
-        playerTankBulletConfig.pY,
-        "playerTankBullet"
-      );
-      this.playerBullets.add(playerTankBullet);
-
-      playerTankBullet
-        .setAngle(playerTankBulletConfig.angle)
-        .setVelocity(playerTankBulletConfig.vX, playerTankBulletConfig.vY);
-
       this.lastFired = time + 300;
-      this.sendShootEvent({
-        pX: playerTankBulletConfig.pX,
-        pY: playerTankBulletConfig.pY,
-        angle: playerTankBulletConfig.angle,
-        vX: playerTankBulletConfig.vX,
-        vY: playerTankBulletConfig.vY,
-      });
+      this.addToBullets(bullet, "playerTankBullet");
+      this.sendShootEvent(bullet);
     }
 
     this.physics.overlap(
-      this.playerBullets,
-      [...this.players.values()],
-      (player, bullet) => {
-        bullet.destroy();
-
-        if (player instanceof Phaser.Physics.Arcade.Sprite) {
+      [...this.bullets.values()],
+      this.playerTank,
+      (bullet) => {
+        if (bullet instanceof Phaser.Physics.Arcade.Sprite) {
           this.sendBulletHitEvent({
-            id: player.name,
-            pX: player.x,
-            pY: player.y,
-            angle: player.angle,
+            id: bullet.name,
+            pX: bullet.x,
+            pY: bullet.y,
+            angle: bullet.angle,
+            vX: 0,
+            vY: 0,
           });
         }
+        this.sendPlayerHitEvent({
+          id: this.playerID,
+          pX: this.playerTank.x,
+          pY: this.playerTank.y,
+          angle: this.playerTank.angle,
+        });
+
+        this.exitGamePlay("GameOver");
       },
       undefined,
       this
     );
 
-    this.physics.overlap(
-      this.enemyBullets,
-      [...this.players.values()],
-      (player, bullet) => {
-        bullet.destroy();
-
-        if (player instanceof Phaser.Physics.Arcade.Sprite) {
-          this.sendBulletHitEvent({
-            id: player.name,
-            pX: player.x,
-            pY: player.y,
-            angle: player.angle,
-          });
-        }
-      },
-      undefined,
-      this
-    );
-
-    this.playerBullets.children.iterate((bullet) => {
+    this.bullets.forEach((bullet) => {
       if (bullet instanceof Phaser.Physics.Arcade.Sprite) {
         if (
           bullet.x < 0 ||
@@ -348,24 +339,9 @@ export class MainGame extends Scene {
           bullet.y < 0 ||
           bullet.y > this.sys.canvas.height
         ) {
-          bullet.destroy();
+          bullet.destroy(true);
         }
       }
-      return true;
-    }, this);
-
-    this.enemyBullets.children.iterate((bullet) => {
-      if (bullet instanceof Phaser.Physics.Arcade.Sprite) {
-        if (
-          bullet.x < 0 ||
-          bullet.x > this.sys.canvas.width ||
-          bullet.y < 0 ||
-          bullet.y > this.sys.canvas.height
-        ) {
-          bullet.destroy();
-        }
-      }
-      return true;
     }, this);
 
     this.exitGamePlayOnEscPress();
