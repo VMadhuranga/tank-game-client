@@ -8,7 +8,7 @@ import { Boot } from "./scenes/Boot";
 const config: Types.Core.GameConfig = {
   type: AUTO,
   width: 1024,
-  height: 768,
+  height: 1024,
   parent: "game-container",
   backgroundColor: "#000",
   scale: {
