@@ -42,52 +42,32 @@ export class MainGame extends Scene {
     super("MainGame");
   }
 
+  sendEvent(ev: Event) {
+    this.socket.send(JSON.stringify(ev));
+  }
+
   sendNewPlayerEvent() {
-    this.socket.send(
-      JSON.stringify({ type: EventNewPlayer, payload: null } as Event)
-    );
+    this.sendEvent({ type: EventNewPlayer, payload: null });
   }
 
   sendOtherPlayersEvent() {
-    this.socket.send(
-      JSON.stringify({ type: EventOtherPlayers, payload: null } as Event)
-    );
+    this.sendEvent({ type: EventOtherPlayers, payload: null });
   }
 
   sendMovePlayerEvent(p: Player) {
-    this.socket.send(
-      JSON.stringify({
-        type: EventMovePlayer,
-        payload: p,
-      } as Event)
-    );
+    this.sendEvent({ type: EventMovePlayer, payload: p });
   }
 
   sendPlayerHitEvent(p: Player) {
-    this.socket.send(
-      JSON.stringify({
-        type: EventPlayerHit,
-        payload: p,
-      } as Event)
-    );
+    this.sendEvent({ type: EventPlayerHit, payload: p });
   }
 
   sendBulletHitEvent(b: Bullet) {
-    this.socket.send(
-      JSON.stringify({
-        type: EventBulletHit,
-        payload: b,
-      } as Event)
-    );
+    this.sendEvent({ type: EventBulletHit, payload: b });
   }
 
   sendShootEvent(b: Bullet) {
-    this.socket.send(
-      JSON.stringify({
-        type: EventShoot,
-        payload: b,
-      } as Event)
-    );
+    this.sendEvent({ type: EventShoot, payload: b });
   }
 
   setPlayerTank() {
