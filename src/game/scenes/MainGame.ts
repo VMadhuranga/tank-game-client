@@ -9,6 +9,7 @@ const EventNewPlayer = "new_player";
 const EventOtherPlayers = "other_players";
 const EventRemovePlayer = "remove_player";
 const EventMovePlayer = "move_player";
+const EventPlayerHit = "player_hit";
 const EventBulletHit = "bullet_hit";
 const EventShoot = "shoot";
 
@@ -55,6 +56,10 @@ export class MainGame extends Scene {
 
   sendMovePlayerEvent(p: Player) {
     this.sendEvent({ type: EventMovePlayer, payload: p });
+  }
+
+  sendPlayerHitEvent(p: Player) {
+    this.sendEvent({ type: EventPlayerHit, payload: p });
   }
 
   sendBulletHitEvent(b: Bullet) {
@@ -156,6 +161,16 @@ export class MainGame extends Scene {
       case EventMovePlayer: {
         const player: Player = ev.payload;
         this.movePlayer(player);
+
+        break;
+      }
+      case EventPlayerHit: {
+        const player: Player = ev.payload;
+        this.removeFromPlayers(player);
+
+        if (this.playerID === player.id) {
+          this.exitGamePlay("GameOver");
+        }
 
         break;
       }
@@ -275,9 +290,10 @@ export class MainGame extends Scene {
 
     this.physics.overlap(
       [...this.bullets.values()],
-      this.playerTank,
-      (bullet) => {
+      [...this.players.values()],
+      (bullet, player) => {
         if (bullet instanceof Phaser.Physics.Arcade.Sprite) {
+          bullet.destroy();
           this.sendBulletHitEvent({
             id: bullet.name,
             pX: bullet.x,
@@ -287,8 +303,15 @@ export class MainGame extends Scene {
             vY: 0,
           });
         }
-
-        this.exitGamePlay("GameOver");
+        if (player instanceof Phaser.Physics.Arcade.Sprite) {
+          player.destroy();
+          this.sendPlayerHitEvent({
+            id: player.name,
+            pX: player.x,
+            pY: player.y,
+            angle: player.angle,
+          });
+        }
       },
       undefined,
       this
