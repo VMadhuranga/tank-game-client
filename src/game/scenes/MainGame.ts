@@ -9,7 +9,6 @@ const EventNewPlayer = "new_player";
 const EventOtherPlayers = "other_players";
 const EventRemovePlayer = "remove_player";
 const EventMovePlayer = "move_player";
-const EventPlayerHit = "player_hit";
 const EventBulletHit = "bullet_hit";
 const EventShoot = "shoot";
 
@@ -56,10 +55,6 @@ export class MainGame extends Scene {
 
   sendMovePlayerEvent(p: Player) {
     this.sendEvent({ type: EventMovePlayer, payload: p });
-  }
-
-  sendPlayerHitEvent(p: Player) {
-    this.sendEvent({ type: EventPlayerHit, payload: p });
   }
 
   sendBulletHitEvent(b: Bullet) {
@@ -161,12 +156,6 @@ export class MainGame extends Scene {
       case EventMovePlayer: {
         const player: Player = ev.payload;
         this.movePlayer(player);
-
-        break;
-      }
-      case EventPlayerHit: {
-        const player: Player = ev.payload;
-        this.removeFromPlayers(player);
 
         break;
       }
@@ -298,12 +287,6 @@ export class MainGame extends Scene {
             vY: 0,
           });
         }
-        this.sendPlayerHitEvent({
-          id: this.playerID,
-          pX: this.playerTank.x,
-          pY: this.playerTank.y,
-          angle: this.playerTank.angle,
-        });
 
         this.exitGamePlay("GameOver");
       },
